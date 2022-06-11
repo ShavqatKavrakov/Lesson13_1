@@ -18,11 +18,11 @@ func TestService_FindAccountById_success(t *testing.T) {
 }
 func TestService_FindAccountById_notFound(t *testing.T) {
 	svc := &Service{}
-	_, err := svc.RegisterAccount("+99200000001")
+	account, err := svc.RegisterAccount("+99200000001")
 	if err != nil {
 		fmt.Println(err)
 	}
-	_, err = svc.FindAccountById(2)
+	_, err = svc.FindAccountById(account.ID + 1)
 	if err != nil {
 		fmt.Println(err)
 	}
