@@ -17,6 +17,7 @@ type Service struct {
 	nextAccountId int64
 	accounts      []*types.Account
 	payments      []*types.Payment
+	favorites     []types.Favorite
 }
 
 func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
@@ -119,4 +120,11 @@ func (s *Service) Repeat(paymentId string) (*types.Payment, error) {
 		Status:    types.PaymentStatusInProgress,
 	}
 	return newPayment, nil
+}
+func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
+	_, err := s.FindPaymentById(paymentID)
+	if err != nil {
+		return nil, ErrPaymentNotFound
+	}
+	return nil, nil
 }
