@@ -48,12 +48,9 @@ func (s *Service) Deposit(accountId int64, amount types.Money) (*types.Account, 
 	if amount <= 0 {
 		return nil, ErrAmountMostBePositive
 	}
-	var account *types.Account
-	for _, acc := range s.accounts {
-		if acc.ID == accountId {
-			account = acc
-			break
-		}
+	account, err := s.FindAccountById(accountId)
+	if err != nil {
+		return nil, err
 	}
 	if account == nil {
 		return nil, ErrAccountNotFound
@@ -66,15 +63,9 @@ func (s *Service) Pay(acountId int64, category types.PaymentCategory, amount typ
 	if amount < 0 {
 		return nil, ErrAmountMostBePositive
 	}
-	var account *types.Account
-	for _, acc := range s.accounts {
-		if acc.ID == acountId {
-			account = acc
-			break
-		}
-	}
-	if account == nil {
-		return nil, ErrAccountNotFound
+	account, err := s.FindAccountById(acountId)
+	if err != nil {
+		return nil, err
 	}
 	if account.Balance < amount {
 		return nil, ErrNotEnouthBalance
@@ -106,14 +97,11 @@ func (s *Service) Reject(paymentId string) error {
 	if err != nil {
 		return err
 	}
-	payment.Status = types.PaymentStatusFail
-	var account *types.Account
-	for _, acc := range s.accounts {
-		if acc.ID == payment.AccountID {
-			account = acc
-			break
-		}
+	account, err := s.FindAccountById(payment.AccountID)
+	if err != nil {
+		return err
 	}
+	payment.Status = types.PaymentStatusFail
 	account.Balance += payment.Amount
 	return nil
 }
