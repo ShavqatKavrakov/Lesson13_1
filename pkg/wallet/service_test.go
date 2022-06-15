@@ -158,3 +158,25 @@ func TestService_Reject_faid(t *testing.T) {
 		return
 	}
 }
+func TestService_RepeatPayment_success(t *testing.T) {
+	svc := newTestService()
+	_, paymens, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := paymens[0]
+	got, err := svc.FindPaymentById(payment.ID)
+	if err != nil {
+		t.Errorf("findPaymentById(): error=%v", err)
+		return
+	}
+	if !reflect.DeepEqual(payment, got) {
+		t.Errorf("FindPaymnetById():wrong payment returned =%v", err)
+	}
+	_, err = svc.Repeat(payment.ID)
+	if err != nil {
+		t.Errorf("Repeat():repetition fialed, error =%v", err)
+		return
+	}
+
+}
