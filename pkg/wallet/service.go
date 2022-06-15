@@ -12,12 +12,13 @@ var ErrAccountNotFound = errors.New("account not found")
 var ErrAmountMostBePositive = errors.New("amount must be greater than zero")
 var ErrNotEnouthBalance = errors.New("not enough balance in account")
 var ErrPaymentNotFound = errors.New("payment not found")
+var ErrFavoriteNotFound = errors.New("favorite not found")
 
 type Service struct {
 	nextAccountId int64
 	accounts      []*types.Account
 	payments      []*types.Payment
-	favorites     []types.Favorite
+	favorites     []*types.Favorite
 }
 
 func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
@@ -122,9 +123,54 @@ func (s *Service) Repeat(paymentId string) (*types.Payment, error) {
 	return newPayment, nil
 }
 func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
-	_, err := s.FindPaymentById(paymentID)
+	payment, err := s.FindPaymentById(paymentID)
 	if err != nil {
 		return nil, ErrPaymentNotFound
 	}
-	return nil, nil
+	favoriteID := uuid.New().String()
+	favorite := &types.Favorite{
+		ID:        favoriteID,
+		AccountId: payment.AccountID,
+		Name:      name,
+		Amount:    payment.Amount,
+		Category:  payment.Category,
+	}
+	s.favorites = append(s.favorites, favorite)
+	return favorite, nil
+}
+func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
+	var favorite *types.Favorite
+	for _, fav := range s.favorites {
+		if fav.ID == favoriteID {
+			favorite = fav
+			break
+		}
+	}
+	if favorite == nil {
+		return nil, ErrFavoriteNotFound
+	}
+	if favorite.Amount < 0 {
+		return nil, ErrAmountMostBePositive
+	}
+	account, err := s.FindAccountById(favorite.AccountId)
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, ErrAccountNotFound
+	}
+	if account.Balance < favorite.Amount {
+		return nil, ErrNotEnouthBalance
+	}
+	paymentId := uuid.New().String()
+	payment := &types.Payment{
+		ID:        paymentId,
+		AccountID: favorite.AccountId,
+		Amount:    favorite.Amount,
+		Category:  favorite.Category,
+		Status:    types.PaymentStatusInProgress,
+	}
+	account.Balance -= favorite.Amount
+	s.payments = append(s.payments, payment)
+	return payment, nil
 }

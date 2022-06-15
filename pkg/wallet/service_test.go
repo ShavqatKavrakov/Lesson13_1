@@ -180,3 +180,32 @@ func TestService_RepeatPayment_success(t *testing.T) {
 	}
 
 }
+func TestService_Favorite_success(t *testing.T) {
+	svc := newTestService()
+	_, paymens, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := paymens[0]
+	_, err = svc.FavoritePayment(payment.ID, "Платёж 50_000")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestService_Favorite_notFound(t *testing.T) {
+	svc := newTestService()
+	_, _, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	favorite, err := svc.FavoritePayment(uuid.New().String(), "Платёж 50_000")
+	if err == nil {
+		t.Errorf("Favorite():must return error,returned nil =%v", err)
+		return
+	}
+	if favorite != nil {
+		t.Error("Favorite():favorite didn't nil")
+	}
+}
