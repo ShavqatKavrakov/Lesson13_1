@@ -138,39 +138,18 @@ func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorit
 	s.favorites = append(s.favorites, favorite)
 	return favorite, nil
 }
-func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
-	var favorite *types.Favorite
+func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
 	for _, fav := range s.favorites {
 		if fav.ID == favoriteID {
-			favorite = fav
-			break
+			return fav, nil
 		}
 	}
-	if favorite == nil {
-		return nil, ErrFavoriteNotFound
-	}
-	if favorite.Amount < 0 {
-		return nil, ErrAmountMostBePositive
-	}
-	account, err := s.FindAccountById(favorite.AccountId)
+	return nil, ErrFavoriteNotFound
+}
+func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
+	favorite, err := s.FindFavoriteByID(favoriteID)
 	if err != nil {
 		return nil, err
 	}
-	if account == nil {
-		return nil, ErrAccountNotFound
-	}
-	if account.Balance < favorite.Amount {
-		return nil, ErrNotEnouthBalance
-	}
-	paymentId := uuid.New().String()
-	payment := &types.Payment{
-		ID:        paymentId,
-		AccountID: favorite.AccountId,
-		Amount:    favorite.Amount,
-		Category:  favorite.Category,
-		Status:    types.PaymentStatusInProgress,
-	}
-	account.Balance -= favorite.Amount
-	s.payments = append(s.payments, payment)
-	return payment, nil
+	return s.Pay(favorite.AccountId, favorite.Category, favorite.Amount)
 }
