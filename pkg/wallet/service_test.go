@@ -26,14 +26,21 @@ type testAccount struct {
 	}
 }
 
-func (svc *testService) addAccount(data testAccount) (*types.Account, []*types.Payment, error) {
-	account, err := svc.RegisterAccount(data.phone)
+func (svc *testService) addAccountAndBalance(phone types.Phone, balance types.Money) (*types.Account, error) {
+	account, err := svc.RegisterAccount(phone)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't register account, error= %v", err)
+		return nil, fmt.Errorf("can't register account, error= %v", err)
 	}
-	_, err = svc.Deposit(account.ID, data.balance)
+	_, err = svc.Deposit(account.ID, balance)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't deposit account, error=%v", err)
+		return nil, fmt.Errorf("can't deposit account, error=%v", err)
+	}
+	return account, nil
+}
+func (svc *testService) addAccount(data testAccount) (*types.Account, []*types.Payment, error) {
+	account, err := svc.addAccountAndBalance(data.phone, data.balance)
+	if err != nil {
+		return nil, nil, err
 	}
 	payments := make([]*types.Payment, len(data.payments))
 	for i, payment := range data.payments {
@@ -176,6 +183,64 @@ func TestService_RepeatPayment_success(t *testing.T) {
 	_, err = svc.Repeat(payment.ID)
 	if err != nil {
 		t.Errorf("Repeat():repetition fialed, error =%v", err)
+		return
+	}
+
+}
+func TestService_FindFavoriteById_success(t *testing.T) {
+	svc := newTestService()
+	_, paymens, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := paymens[0]
+	favorite, err := svc.FavoritePayment(payment.ID, "megafon")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	got, err := svc.FindFavoriteByID(favorite.ID)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(favorite, got) {
+		t.Errorf("FindFavoriteById():wrong favorite returned =%v", err)
+	}
+}
+
+func TestService_Favorite_notFound(t *testing.T) {
+	svc := newTestService()
+	_, paymens, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := paymens[0]
+	_, err = svc.FavoritePayment(payment.ID, "megafon")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	_, err = svc.FindFavoriteByID(uuid.New().String())
+	if err == nil {
+		t.Errorf("Favorite():must return error,returned nil =%v", err)
+		return
+	}
+}
+func TestService_PayFromFavorite_success(t *testing.T) {
+	svc := newTestService()
+	_, paymens, err := svc.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+	}
+	payment := paymens[0]
+	favorite, err := svc.FavoritePayment(payment.ID, "megafon")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	_, err = svc.PayFromFavorite(favorite.ID)
+	if err != nil {
+		t.Errorf("PayFromFavorite():can't make payment, error=%v", err)
 		return
 	}
 

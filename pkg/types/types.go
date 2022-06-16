@@ -33,3 +33,12 @@ type Account struct {
 	Phone   Phone
 	Balance Money
 }
+
+//Favorite представляет платёж в избранное.
+type Favorite struct {
+	ID        string
+	AccountId int64
+	Name      string
+	Amount    Money
+	Category  PaymentCategory
+}
